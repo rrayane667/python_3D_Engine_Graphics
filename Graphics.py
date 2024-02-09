@@ -1,67 +1,69 @@
-from math import sin, cos, sqrt
-class graphics_pipeline :
-    def __init__(self, vertex_position, vertex_color, ordre, proj, dim, draw, t, res, a, b, c):
-        self.vertex_position = vertex_position
-        self.vertex_color = vertex_color
-        self.ordre = ordre
-        self.proj = proj
-        self.dim = dim
-        self.draw = draw
-        self.t = t
-        self.res = res
-        self.a = a
-        self.b = b
-        self.c = c
-    def CamRot(self, v, sx, sy):
-        x = v[0]
-        y = v[1]
-        z = v[2]
-        theta = sx
-        phi = sy
-        zeta = 0
-        Fx=(x*cos(theta)-z*sin(theta))*cos(zeta)-(y*cos(phi)-x*sin(theta)*sin(phi)-z*cos(theta)*sin(phi))*sin(zeta)
-        Fy=(x*cos(theta)-z*sin(theta))*sin(zeta)+cos(zeta)*(y*cos(phi)-x*sin(theta)*sin(phi)-z*cos(theta)*sin(phi))
-        Fz=y*sin(phi)+x*sin(theta)*cos(phi)+z*cos(phi)*cos(theta)
-        return [Fx, Fy, Fz]
-    def tesselation_shader(self, res, t):
-        dim = self.dim
-        coord=[[] for _ in range(res)]
-        for i in range(res):
-            for j in range(res):
-                x=i*dim/res - (1-i)*dim/res
-                y=j*dim/res - (1-j)*dim/res
-                coord[i].append((x, y, 20*sin(self.a*x + self.b*y + self.c*t)))
-        return coord
-    
-    def normals(self, res, dim, t):
-        normals = [[] for _ in range(res)]
-        for i in range(res):
-            for j in range(res):
-                x=i*dim/res - (1-i)*dim/res
-                y=j*dim/res - (1-j)*dim/res
-                l=sqrt((self.a**2 + self.b**2)*cos(self.a*x + self.b*y + self.c*t)**2 + 1)
-                normals[i].append((-self.b*cos(self.a*x + self.b*y + self.c*t)/l, self.a*cos(self.a*x + self.b*y + self.c*t)/l, 1/l))
-        return normals
-    def scalaire(self, v, u): return u[0]*v[0] + u[1]*v[1] + u[2]*v[2]
-        
-    def triangularisation(self, c, clr, t):
-        n=len(c[0])
-        f=self.draw
-        norm = self.normals(self.res, self.dim, t)
-        if not clr: clr=[[1 for _ in c[i]] for i in range(len(c))]
-        for i in range(n-1):
-            for j in range(n-1):
-                l=sqrt((400-c[i][j][0])**2 + (400-c[i][j][1])**2 + (400-c[i][j][2])**2)
-                lum = max(0, self.scalaire(norm[i][j], [(400-c[i][j][0])/l, (400-c[i][j][1])/l, (400-c[i][j][2])/l]))
-                f([[self.proj(c[i][j]), self.proj(c[i][j+1]), self.proj(c[i+1][j+1])], (255*lum, 255*lum, 255*lum)])
-                f([[self.proj(c[i][j]), self.proj(c[i+1][j]), self.proj(c[i+1][j+1])], (255*lum, 255*lum, 255*lum)])
-                
-                #print([self.proj(c[i][j]), self.proj(c[i][j+1]), self.proj(c[i+1][j+1])])
-    
-    def rendering(self, sx, sy, t):
-        new_coord = self.tesselation_shader(self.res, t) #[ [self.proj(self.tesselation_shader(self.res)[i][j]) for j in range(len(self.tesselation_shader(self.res)[i]))] for i in range(len(self.tesselation_shader(self.res)))]
-        rot_coord = [ [self.CamRot(j, sx, sy) for j in new_coord[i]] for i in range(len(new_coord))]
-        self.triangularisation(rot_coord, self.vertex_color, t)
+import basicMesh
+import Graphics
+import pygame
+from math import cos, sin, pi, sqrt
 
-        
-        
+white = (255, 255, 255)
+black = (0, 0, 0)
+indigo = (75,0,130)
+
+theta, zeta, phi = 0, 0, 0
+
+k1=400
+k2=k1
+d=500
+WIDTH, HEIGHT = 1275,650
+running = True
+sensi = 0.01
+
+hierarchie = []
+select = []
+
+
+#fonction projection 3D->2D
+def igrec(y, z):
+   return(k2*y/(z+d+k1)+HEIGHT/2)
+def ix(x, z):
+    return(k1*x/(z+d+k1)+WIDTH/2)
+
+def proj(L):
+    return [k1*L[0]/(L[2]+d+k1)+WIDTH/2, k1*L[1]/(L[2]+d+k1)+HEIGHT/2]
+def norm(u):
+    return sqrt(u[0]**2 + u[1]**2 + u[2]**2)
+def diffVect(u, v):
+    return [u[0]-v[0], u[1]-v[1], u[2]-v[2]]
+
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+
+
+t=0
+
+while running :
+    
+    screen.fill(black)
+    
+    t+=0.5  
+    
+    mx,my=pygame.mouse.get_pos()
+    pygame.display.set_caption(f'3D_Engine mx:{mx*sensi},my: {my*sensi}')
+    pygame.draw.circle(screen, white, proj([500, 0, 0]), 25)
+    
+    if select:
+        #v=list(map(CamRot,select[0].coord))
+        grph_pip.rendering(-mx*sensi, my*sensi, t)
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.MOUSEBUTTONDOWN :
+            if event.button==1:
+                print(1)
+                quad = basicMesh.quad(600, [400, 0, 0], [-100,0,0])
+                hierarchie.append(quad)
+                grph_pip = Graphics.graphics_pipeline(quad.coord, 0, 0, proj, 300, (lambda l : pygame.draw.polygon(screen, l[1], l[0])), 0, 64, 0.1, 0.1, 0.2, quad.center)
+                select = [quad]
+                
+    
+    pygame.display.update()
+pygame.quit() 

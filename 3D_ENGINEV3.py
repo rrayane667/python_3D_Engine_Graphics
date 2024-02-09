@@ -40,7 +40,7 @@ while running :
     
     screen.fill(black)
     
-    t+=1    
+    t+=0.5  
     
     mx,my=pygame.mouse.get_pos()
     
@@ -54,9 +54,9 @@ while running :
         if event.type == pygame.MOUSEBUTTONDOWN :
             if event.button==1:
                 
-                quad = basicMesh.quad(600, [0,0,0])
+                quad = basicMesh.quad(600, [400, 0, 0], [-100,0,0])
                 hierarchie.append(quad)
-                grph_pip = Graphics.graphics_pipeline(quad.coord, 0, 0, proj, 200, (lambda l : pygame.draw.polygon(screen, l[1], l[0])), 0, 64, 0.1, 0.1, 0.2)
+                grph_pip = Graphics.graphics_pipeline(quad.coord, 0, 0, proj, 300, (lambda l : pygame.draw.polygon(screen, l[1], l[0])), 0, 80, 0.1, 0.1, 0.2, quad.center)
                 select = [quad]
                 
     

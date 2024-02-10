@@ -1,6 +1,6 @@
 from math import cos, sin, pi
 class quad:
-    def __init__(self, dim, center=[0,0,0], name="Quad", scale=[1,1,0], rotation=[0,0,0], res=2):
+    def __init__(self, dim, center, name="Quad", scale=[1,1,0], rotation=[0,0,0], res=2):
         self.name = name
         self.dim = dim
         self.center = center

@@ -2,10 +2,6 @@ import basicMesh
 import Graphics
 import Illumination
 import pygame
-from math import cos, sin, pi, sqrtimport basicMesh
-import Graphics
-import Illumination
-import pygame
 from math import cos, sin, pi, sqrt
 
 white = (255, 255, 255)
@@ -48,15 +44,18 @@ def grad(x, y):
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
+
 class light:
-    def __init__(self, lightType, lightIntensity, lightPosition, innerRadiusAngle, outerRadiusAngle):
-        self.lightType = lightType # lightType = 0 -
+    def __init__(self, lightType, lightIntensity, lightPosition, innerRadiusAngle, outerRadiusAngle, direction):
+        self.lightType = lightType # lightType = 0 -> directional light, 1 ->spot light, 2 -> point light
         self.lightIntensity = lightIntensity
         self.lightPosition = lightPosition
-        self.innerRadiusAngle = innerRadiusAngle
-        self.outerRadiusAngle = outerRadiusAngle
+        self.innerRadiusAngle = innerRadiusAngle # only works for spot light and point light, for spot light it defines the angle between the direction and the edge of the cone with max intensity de meme for outerRadiusAngle, for the point light it defines the radius of the sphere where max intensity
+        self.outerRadiusAngle = outerRadiusAngle # only works for spot and point light, for point light light outerRadius = innerRadius * outerRadiusAngle
+        self.direction = direction # only works for spot and directional light
 
-spotLight = light(0, 0.8, [0, 0, -400], 0.8, 0.6)
+spotLight = light(1, 1, [0, 0, -400], 0.95, 0.6, [0, 0, 1])
+pointLight = light(2, 0, [0, 0, -400], 320, 1.9, [0, 0, 1])
     
 
     
@@ -75,9 +74,8 @@ while running :
     
     if select:
         for i in range(len(triangles)):
-            pygame.draw.circle(screen, indigo, proj(spotLight.lightPosition), 5)
             pygame.draw.polygon(screen, colors[i], (triangles[i][0], triangles[i][1], triangles[i][2]))
-    
+    pygame.draw.circle(screen, white, proj(spotLight.lightPosition), 5) 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -95,79 +93,4 @@ while running :
                 
     
     pygame.display.update()
-pygame.quit() 
-
-white = (255, 255, 255)
-black = (0, 0, 0)
-indigo = (75,0,130)
-light = [0, 0, -500]
-
-theta, zeta, phi = 0, 0, 0
-
-k1=400
-k2=k1
-d=500
-WIDTH, HEIGHT = 1275, 650
-running = True
-sensi = 0.01
-
-hierarchie = []
-select = []
-
-
-#fonction projection 3D->2D
-def igrec(y, z):
-   return(k2*y/(z+d+k1)+HEIGHT/2)
-def ix(x, z):
-    return(k1*x/(z+d+k1)+WIDTH/2)
-
-def proj(L):
-    return [k1*L[0]/(L[2]+d+k1)+WIDTH/2, k1*L[1]/(L[2]+d+k1)+HEIGHT/2]
-def norm(u):
-    return sqrt(u[0]**2 + u[1]**2 + u[2]**2)
-def diffVect(u, v):
-    return [u[0]-v[0], u[1]-v[1], u[2]-v[2]]
-def disc(x, y):
-    return (x,y,20*sin(0.1*x + 0.2*y))
-def grad(x, y):
-    return [-20*0.2*cos(0.1*x + 0.2*y ), 0, 20*0.1*cos(0.1*x + 0.2*y )]
-
-
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
-
-t=0
-
-while running :
-    
-    screen.fill(black)
-    
-    t+=0.5  
-    
-    mx,my=pygame.mouse.get_pos()
-    pygame.display.set_caption(f'3D_Engine mx:{mx*sensi},my: {my*sensi}')
-
-    
-    if select:
-        for i in range(len(triangles)):
-            pygame.draw.circle(screen, white, proj(light), 5)
-            pygame.draw.polygon(screen, colors[i], (triangles[i][0], triangles[i][1], triangles[i][2]))
-    
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.MOUSEBUTTONDOWN :
-            if event.button==1:
-                quad = basicMesh.quad(600, [400, 0, 0], [-100,0,0])
-                hierarchie.append(quad)
-                grph_pip = Graphics.graphics_pipeline( 0, proj, 300, 300, (lambda l : pygame.draw.polygon(screen, l[1], l[0])), 0, 16, quad.center, disc, grad)
-                select = [quad]
-                grph_pip.rendering()
-                triangles = grph_pip.triangles
-                lum = Illumination.illuminationPipeline(grph_pip.normales, [0,0,-1300], grph_pip.vertex_position, [-500, -500, -500], grph_pip.vertex_color)
-                lum.rendering()
-                colors = lum.vertex_color
-                
-    
-    pygame.display.update()
-pygame.quit() 
+pygame.quit()

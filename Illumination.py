@@ -17,13 +17,30 @@ def Normalize(u):
     r = sqrt(u[0]**2 + u[1]**2 + u[2]**2)
     if not r: return u
     return [u[0]/r, u[1]/r, u[2]/r]
-def spotLightIntensity(dir, innerRadiusAngle, outerRadiusAngle, vectPosition,lightPosition):
+def norm(u):
+    return sqrt(u[0]**2 + u[1]**2 + u[2]**2)
+
+def spotLightIntensity(dir, innerRadiusAngle, outerRadiusAngle, vectPosition,lightPosition, normal, intensity):
     vl =Normalize(vecAB(lightPosition, vectPosition))
     dot = scalaire(vl, Normalize(dir))
+    lum = max(0, scalaire(normal, vl))*intensity
     if dot > innerRadiusAngle:
-        return 1
+        return lum
     elif innerRadiusAngle >= dot > outerRadiusAngle:
-        return (dot - outerRadiusAngle)/(innerRadiusAngle - outerRadiusAngle)
+        return lum*(dot - outerRadiusAngle)/(innerRadiusAngle - outerRadiusAngle)
+    else :
+        return 0
+    
+def pointLightIntensity(innerRadius, outerRadiusCoef, vectPosition, lightPosition, normal, intensity):
+    if 1 > intensity: intensity = 1.2
+    vl = vecAB(lightPosition, vectPosition)
+    lum = max(0, scalaire(normal, Normalize(vl)))*intensity
+    l = norm(vl)
+    outerRadius = innerRadius * outerRadiusCoef
+    if innerRadius > l:
+        return lum
+    if outerRadius > l > innerRadius:
+        return lum*(l - outerRadius )/(innerRadius - outerRadius)
     else :
         return 0
 
@@ -44,6 +61,8 @@ class illuminationPipeline:
         self.vertex_color = vertex_color
         self.lit = []
         self.lightIntensity = light.lightIntensity
+        self.innerRadiusAngle = light.innerRadiusAngle
+        self.outerRadiusAngle = light.outerRadiusAngle
 
     #checks if vertix is visible (dot product)
     def isVisible(self):
@@ -51,8 +70,15 @@ class illuminationPipeline:
         return 0
     
     def isLit(self):
-        self.lit = [[max(0, scalaire(Normalize(vecAB(self.vertex_position[i][j], self.lightPosition)), Normalize(multiVect(self.normals[i*self.vertNumber + j],-1)))) for j in range(self.vertNumber)] for i in range(self.vertNumber)]
-        return 0
+        if self.light.lightType == 0:
+            self.lit = [[max(0, scalaire(Normalize(vecAB(self.vertex_position[i][j], self.lightPosition)), Normalize(multiVect(self.normals[i*self.vertNumber + j],-1)))) for j in range(self.vertNumber)] for i in range(self.vertNumber)]
+            return 0
+        if self.light.lightType == 1:
+            self.lit = [[spotLightIntensity(self.light.direction, self.innerRadiusAngle, self.outerRadiusAngle, self.vertex_position[i][j], self.lightPosition, self.normals[i*self.vertNumber + j], self.lightIntensity) for j in range(self.vertNumber)] for i in range(self.vertNumber)]
+            return 0
+        if self.light.lightType == 2:
+            self.lit = [[pointLightIntensity( self.innerRadiusAngle, self.outerRadiusAngle, self.vertex_position[i][j], self.lightPosition, self.normals[i*self.vertNumber + j], self.lightIntensity) for j in range(self.vertNumber)] for i in range(self.vertNumber)]
+            return 0
     
     # spec = (C + L).N
     def specularity(self):
@@ -61,8 +87,8 @@ class illuminationPipeline:
     
 #linearInterpolation(multiVect(self.vertex_color[i][j], self.visibilite[i][j]), [255]*3,
     def fragShader(self):
-        a = [multiVect(linearInterpolation(multiVect(self.vertex_color[i][j],self.lightIntensity), [self.lightIntensity*255*self.visibilite[i][j]]*3, self.spec[i][j]), self.visibilite[i][j]*self.lit[i][j]) for j in range(self.vertNumber-1) for i in range(self.vertNumber-1)]
-        a.extend([multiVect(linearInterpolation(multiVect(self.vertex_color[i+1][j+1],self.lightIntensity), [self.lightIntensity*255*self.visibilite[i+1][j+1]]*3, self.spec[i+1][j+1]), self.visibilite[i+1][j+1]*self.lit[i+1][j+1]) for j in range(self.vertNumber-1) for i in range(self.vertNumber-1)])
+        a = [multiVect(linearInterpolation(self.vertex_color[i][j], [255*self.visibilite[i][j]]*3, self.spec[i][j]), self.visibilite[i][j]*self.lit[i][j]) for j in range(self.vertNumber-1) for i in range(self.vertNumber-1)]
+        a.extend([multiVect(linearInterpolation(self.vertex_color[i+1][j+1], [255*self.visibilite[i+1][j+1]]*3, self.spec[i+1][j+1]), self.visibilite[i+1][j+1]*self.lit[i+1][j+1]) for j in range(self.vertNumber-1) for i in range(self.vertNumber-1)])
         self.vertex_color = a
         return 0
     
